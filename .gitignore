@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment & secrets
+.env
+**/.env
+.env.*
+**/.env.*
+.dev.vars
+**/.dev.vars
+*serviceAccount*.json
+*firebase-adminsdk*.json
+
+# Build & tool caches
+.wrangler/
+**/.wrangler/
+dist/
+.vite/
+
+# Local runtime uploads, database & large OCR binaries
+server/uploads/
+server/data/
+server/*.traineddata
+extension.zip
+
+# OS & editor files
+.DS_Store
+Thumbs.db
+*.log
