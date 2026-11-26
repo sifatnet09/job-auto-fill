@@ -1,0 +1,161 @@
+/* GovJob AutoFill - In-Page Content Styles */
+
+.govfill-highlight-filled {
+  outline: 2px solid #006a4e !important;
+  background-color: rgba(0, 106, 78, 0.08) !important;
+  transition: all 0.3s ease-in-out !important;
+}
+
+/* Floating Helper Widget */
+#govfill-floating-widget {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2147483647;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  font-size: 13px;
+  user-select: none;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#govfill-floating-widget.govfill-collapsed {
+  border-radius: 50%;
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: #006a4e;
+  color: #ffffff;
+  border: none;
+}
+
+#govfill-floating-widget.govfill-collapsed:hover {
+  transform: scale(1.08);
+  box-shadow: 0 12px 30px rgba(0, 106, 78, 0.4);
+}
+
+.govfill-card {
+  width: 270px;
+  display: flex;
+  flex-direction: column;
+}
+
+.govfill-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #006a4e, #004d38);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.govfill-header-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.govfill-header-close:hover {
+  color: #ffffff;
+}
+
+.govfill-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.govfill-candidate-pill {
+  background: #f1f5f9;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 11px;
+}
+
+.govfill-candidate-pill strong {
+  display: block;
+  font-size: 12px;
+  color: #0f172a;
+}
+
+.govfill-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.govfill-btn-primary {
+  background: #006a4e;
+  color: #ffffff;
+}
+
+.govfill-btn-primary:hover {
+  background: #00503b;
+}
+
+.govfill-media-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.govfill-btn-media {
+  flex: 1;
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  padding: 6px 8px;
+  font-size: 11px;
+  text-decoration: none;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.govfill-btn-media:hover {
+  background: #e2e8f0;
+}
+
+.govfill-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 2147483647;
+  padding: 12px 20px;
+  background: #0f172a;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  border-left: 5px solid #006a4e;
+  animation: govfillSlide 0.3s ease;
+}
+
+@keyframes govfillSlide {
+  from { opacity: 0; transform: translateY(-15px); }
+  to { opacity: 1; transform: translateY(0); }
+}

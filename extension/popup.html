@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toya Telecom & Computer - AutoFill</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="brand">
+        <img src="icons/toya_logo.jpg" alt="Toya Logo" style="width: 50px; height: 50px; object-fit: contain; border-radius: 8px; background: #fff; padding: 2px; border: 1px solid #e2e8f0; flex-shrink: 0;">
+        <div>
+          <h1 class="brand-title">Toya Telecom & Computer</h1>
+          <span class="brand-subtitle">Buy Sell & Exchange</span>
+        </div>
+      </div>
+      <div id="connection-indicator" class="connection-pill disconnected" title="Connection status">
+        <span class="dot"></span>
+        <span id="conn-status-text">Disconnected</span>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="popup-body">
+      <!-- SECTION 1: AUTHENTICATION & SETTINGS -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-title">1. Cloud Server & API Key</span>
+          <button id="btn-toggle-config" class="btn-text-icon" title="Toggle Settings">⚙️</button>
+        </div>
+
+        <div id="config-fields" class="config-content">
+          <div class="field-group">
+            <label>Web App Server URL</label>
+            <input type="url" id="server-url" class="input-ctrl" placeholder="https://job.toyatelecom.online">
+            <div style="display:flex;gap:6px;margin-top:4px;">
+              <button type="button" class="btn btn-sm" id="btn-preset-cloud" style="font-size:10px;padding:3px 7px;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;">☁️ Cloud (job.toyatelecom.online)</button>
+              <button type="button" class="btn btn-sm" id="btn-preset-local" style="font-size:10px;padding:3px 7px;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;">💻 Local (localhost:5000)</button>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label>Developer API Key</label>
+            <div class="input-with-action">
+              <input type="password" id="api-key" class="input-ctrl" placeholder="govfill_live_..." readonly style="background: #f1f5f9;">
+              <button type="button" id="btn-edit-api-key" class="btn btn-secondary btn-sm">Change</button>
+            </div>
+          </div>
+
+          <button id="btn-authenticate" class="btn btn-secondary btn-block">
+            <span>🔐 Authenticate &amp; Save Key</span>
+          </button>
+        </div>
+
+        <div id="auth-success-badge" class="auth-banner success" style="display: none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span id="auth-success-text">Authenticated as: Admin</span>
+            <button type="button" id="btn-change-api-key" class="btn btn-secondary btn-sm" style="padding:3px 8px;font-size:10.5px;flex-shrink:0;">Change</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: CUSTOMER ID SELECTION -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-title">2. Select Customer Profile</span>
+          <button id="btn-refresh-customers" class="btn-text-icon" title="Refresh customer list from cloud">🔄</button>
+        </div>
+
+        <div class="customer-picker">
+          <div class="field-group">
+            <label>Customer ID or Phone Number</label>
+            <div class="input-with-action">
+              <input type="text" id="customer-id" class="input-ctrl" placeholder="TTC-0001 or 01727518325">
+              <button id="btn-fetch-customer" class="btn btn-secondary btn-sm">Fetch</button>
+            </div>
+          </div>
+
+          <div class="field-group" style="margin-top: 8px;">
+            <label>Or Choose Customer</label>
+            <select id="customer-select-dropdown" class="input-ctrl">
+              <option value="">-- Select from your cloud database --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Customer Preview Card -->
+        <div id="customer-preview" class="customer-card" style="display: none;">
+          <div class="cust-card-top">
+            <img id="cust-thumb" src="icons/icon48.png" alt="Candidate" class="cust-avatar">
+            <div class="cust-info">
+              <div id="cust-name" class="cust-name">PRIANKA KHANOM</div>
+              <div id="cust-name-bn" class="cust-bn">প্রিয়াংকা খানম</div>
+              <div class="cust-meta">
+                <span id="cust-id-badge" class="badge-pill">TTC-0001</span>
+                <span id="cust-gender" class="cust-meta-text">Female</span>
+              </div>
+            </div>
+          </div>
+          <div class="cust-details-grid">
+            <div class="detail-cell">
+              <span class="label">Father</span>
+              <span id="cust-father" class="val">-</span>
+            </div>
+            <div class="detail-cell">
+              <span class="label">Mother</span>
+              <span id="cust-mother" class="val">-</span>
+            </div>
+            <div class="detail-cell">
+              <span class="label">Mobile</span>
+              <span id="cust-mobile" class="val">-</span>
+            </div>
+            <div class="detail-cell">
+              <span class="label">NID No</span>
+              <span id="cust-nid" class="val">-</span>
+            </div>
+            <div class="detail-cell">
+              <span class="label">DOB</span>
+              <span id="cust-dob" class="val">-</span>
+            </div>
+            <div class="detail-cell">
+              <span class="label">District</span>
+              <span id="cust-district" class="val">-</span>
+            </div>
+            <div class="detail-cell" style="grid-column: span 2;">
+              <span class="label">Education</span>
+              <span id="cust-gpa" class="val">-</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: AUTOFILL ACTION -->
+      <section class="action-section">
+        <button id="btn-autofill" class="btn btn-primary btn-large btn-block" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          <span>⚡ Auto-Fill Application Form</span>
+        </button>
+
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button id="btn-pin-panel" type="button" class="btn btn-secondary btn-sm" style="flex:1;" title="Keep extension open on webpage until you click Close">
+            📌 Keep Open on Page
+          </button>
+          <button id="btn-close-popup" type="button" class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;">
+            ✕ Close
+          </button>
+        </div>
+
+        <div id="autofill-status-banner" class="status-banner" style="display: none;"></div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <label class="toggle-control">
+        <input type="checkbox" id="chk-floating-widget" checked>
+        <span>Show in-page floating widget</span>
+      </label>
+      <a id="link-open-dashboard" href="https://job.toyatelecom.online" target="_blank" class="footer-link">Open Hub ↗</a>
+    </footer>
+    <div style="padding: 6px 12px; text-align: center; font-size: 10px; color: #64748b; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+      Developed By <strong style="color: #006a4e;">Sifat Hossain</strong>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+name = "job-toya"
+main = "src/worker.js"
+compatibility_date = "2026-01-01"
+workers_dev = true
+
+routes = [
+  { pattern = "job.toyatelecom.online", custom_domain = true }
+]
+
+[assets]
+directory = "../server/public"
+binding = "ASSETS"
+run_worker_first = ["/api/*", "/media/*", "/uploads/*"]
+
+[[r2_buckets]]
+binding = "STORAGE_BUCKET"
+bucket_name = "storage"
+
+[vars]
+FIREBASE_PROJECT_ID = "toya-telecom"
+GEMINI_MODEL = "gemini-1.5-flash"
+DEFAULT_ADMIN_USERNAME = "admin"
+DEFAULT_ADMIN_EMAIL = "sifat.net09@gmail.com"
+CUSTOM_DOMAIN = "job.toyatelecom.online"
+MAX_R2_STORAGE_BYTES = "5368709120"
+MAX_R2_MONTHLY_OPS = "500000"
+MAX_UPLOAD_FILE_BYTES = "15728640"
