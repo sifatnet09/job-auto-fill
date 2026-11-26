@@ -39,6 +39,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   const linkOpenDash = document.getElementById('link-open-dashboard');
 
   let currentLoadedCustomer = null;
+  let isAutoFillRunningOnTab = false;
+
+  function updateAutofillButtonUI(running) {
+    isAutoFillRunningOnTab = Boolean(running);
+    if (isAutoFillRunningOnTab) {
+      btnAutofill.disabled = false;
+      btnAutofill.style.background = '#dc2626';
+      btnAutofill.style.borderColor = '#dc2626';
+      btnAutofill.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="5" y="5" width="14" height="14" rx="2"></rect>
+        </svg>
+        <span>⏹ Stop Auto-Fill</span>
+      `;
+    } else {
+      btnAutofill.disabled = !currentLoadedCustomer;
+      btnAutofill.style.background = '';
+      btnAutofill.style.borderColor = '';
+      btnAutofill.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        <span>⚡ Auto-Fill Application Form</span>
+      `;
+    }
+  }
 
   // 1. Load saved settings from Chrome Storage
   const LIVE_SERVER_URL = 'https://job.toyatelecom.online';
@@ -90,12 +116,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   linkOpenDash.href = serverUrl;
   chkFloating.checked = false;
 
-  // Check if floating widget is currently enabled on THIS active tab only
+  // Check if floating widget / autofill is currently active on THIS active tab only
   const [initialTab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (initialTab?.id) {
     chrome.tabs.sendMessage(initialTab.id, { action: 'GET_WIDGET_STATE' }, (res) => {
       if (!chrome.runtime.lastError && res) {
         chkFloating.checked = Boolean(res.visible);
+        if (res.autofillActive) {
+          updateAutofillButtonUI(true);
+        }
       }
     });
   }
@@ -360,20 +389,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // 6. Trigger Auto-Fill on Target Webpage
+  // 6. Trigger Auto-Fill or Stop Auto-Fill (same button toggles Start <-> Stop)
   btnAutofill.addEventListener('click', async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab || !tab.id) {
+      showBannerMsg('Cannot access active browser tab.', 'error');
+      return;
+    }
+
+    if (isAutoFillRunningOnTab) {
+      chrome.tabs.sendMessage(tab.id, { action: 'STOP_AUTOFILL_GOV_FORM' }, () => {
+        updateAutofillButtonUI(false);
+        showBannerMsg('⏹ Auto-Fill stopped on this page.', 'info');
+      });
+      return;
+    }
+
     if (!currentLoadedCustomer) {
       alert('Please select and fetch a customer profile first.');
       return;
     }
 
     showBannerMsg('Injecting candidate data into online application...', 'info');
-
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab || !tab.id) {
-      showBannerMsg('Cannot access active browser tab.', 'error');
-      return;
-    }
+    updateAutofillButtonUI(true);
 
     chrome.tabs.sendMessage(tab.id, {
       action: 'AUTOFILL_GOV_FORM',
@@ -381,13 +419,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       customerId: currentLoadedCustomer.customerId
     }, (response) => {
       if (chrome.runtime.lastError) {
+        updateAutofillButtonUI(false);
         showBannerMsg('Please refresh the government job application page and try again.', 'error');
         return;
       }
 
       if (response && response.success) {
+        updateAutofillButtonUI(response.autofillActive !== false);
         showBannerMsg(`✨ Form auto-filled accurately (${response.filledCount} fields populated)!`, 'success');
       } else {
+        updateAutofillButtonUI(false);
         showBannerMsg(response?.message || 'No compatible fields detected on this page.', 'error');
       }
     });

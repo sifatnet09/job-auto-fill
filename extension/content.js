@@ -14,6 +14,7 @@
   let floatingWidgetEl = null;
   let lastFilledCount = 0;
   let didAutoFillThisPage = false;
+  let isAutoFillActive = Boolean(sessionStorage.getItem('govfill_autofill_session'));
 
   // Initialize from Chrome storage (ONLY show floating widget on tabs where user explicitly turned it ON)
   chrome.storage.local.get(['cachedCustomer', 'lastCustomerId'], (res) => {
@@ -28,12 +29,14 @@
 
     // Automatically attach Customer Photo & Signature on 2nd page if Page 1 was autofilled in this tab session
     if (
+      isAutoFillActive &&
       cachedProfile &&
       cachedCustomerId &&
       sessionStorage.getItem('govfill_autofill_session') === cachedCustomerId &&
       hasMediaFileInputs()
     ) {
       setTimeout(() => {
+        if (!isAutoFillActive) return;
         attachMediaFilesToPage(cachedProfile, true);
       }, 500);
     }
@@ -41,12 +44,27 @@
 
   setupSubmitTracking();
 
+  function stopAutoFill() {
+    isAutoFillActive = false;
+    didAutoFillThisPage = false;
+    sessionStorage.removeItem('govfill_autofill_session');
+    updateFloatingWidgetInfo();
+    showToast('⏹ Auto-Fill stopped on this page.');
+    return { success: true, stopped: true };
+  }
+
   // Listen for messages from extension popup
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'GET_WIDGET_STATE') {
       sendResponse({
-        visible: Boolean(floatingWidgetEl) || sessionStorage.getItem('govfill_widget_enabled_tab') === '1'
+        visible: Boolean(floatingWidgetEl) || sessionStorage.getItem('govfill_widget_enabled_tab') === '1',
+        autofillActive: isAutoFillActive
       });
+      return false;
+    }
+
+    if (request.action === 'STOP_AUTOFILL_GOV_FORM') {
+      sendResponse(stopAutoFill());
       return false;
     }
 
@@ -168,15 +186,17 @@
    * Main Form Auto-Fill Executor
    */
   function executeAutoFill(data) {
+    isAutoFillActive = true;
+    updateFloatingWidgetInfo();
     let filledCount = 0;
 
     filledCount = fillTeletalkForm(data);
-    if (filledCount === 0) {
+    if (filledCount === 0 && isAutoFillActive) {
       filledCount = fillGenericGovForm(data);
     }
 
     const hasFiles = hasMediaFileInputs();
-    if (hasFiles && (data.photoUrl || data.signatureUrl)) {
+    if (isAutoFillActive && hasFiles && (data.photoUrl || data.signatureUrl)) {
       didAutoFillThisPage = true;
       if (cachedCustomerId) sessionStorage.setItem('govfill_autofill_session', cachedCustomerId);
       attachMediaFilesToPage(data, false);
@@ -189,10 +209,12 @@
       trackApplyOnServer('autofill', filledCount);
       showToast(`✨ Successfully auto-filled ${filledCount} fields & tracked this page!`);
     } else if (!hasFiles) {
+      isAutoFillActive = false;
+      updateFloatingWidgetInfo();
       showToast('⚠️ No compatible form fields found on this page.');
     }
 
-    return { success: filledCount > 0 || hasFiles, filledCount };
+    return { success: filledCount > 0 || hasFiles, filledCount, autofillActive: isAutoFillActive };
   }
 
   /**
@@ -881,10 +903,11 @@
   function waitAndSelectUpazila(selector, keywords, value, sectionHint, onDone) {
     let attempts = 0;
     const trySelect = () => {
+      if (!isAutoFillActive) return;
       attempts++;
       const ok = value ? setOrLabelSelect(selector, keywords, value, sectionHint) : 1;
       if (ok || attempts >= 12) {
-        if (onDone) onDone();
+        if (isAutoFillActive && onDone) onDone();
         return;
       }
       setTimeout(trySelect, 250);
@@ -894,6 +917,7 @@
 
   // --- ELEMENT VALUE SETTERS WITH SYNTHETIC DISPATCH ---
   function setInputValue(selectorOrEl, val) {
+    if (!isAutoFillActive) return 0;
     if (!val && val !== 0) return 0;
     const el = typeof selectorOrEl === 'string' ? document.querySelector(selectorOrEl) : selectorOrEl;
     if (!el) return 0;
@@ -931,6 +955,7 @@
   }
 
   function setSelectValue(selectorOrEl, valOrList) {
+    if (!isAutoFillActive) return 0;
     const candidates = Array.isArray(valOrList)
       ? valOrList.filter(v => v !== undefined && v !== null && String(v).trim() !== '')
       : (valOrList !== undefined && valOrList !== null && String(valOrList).trim() !== '' ? [valOrList] : []);
@@ -1159,8 +1184,8 @@
             <span id="gw-cust-id" style="color: #64748b;">${cachedCustomerId || 'Open extension popup to select'}</span>
           </div>
 
-          <button id="gw-btn-autofill" class="govfill-btn govfill-btn-primary">
-            ⚡ Auto-Fill Application Form
+          <button id="gw-btn-autofill" class="govfill-btn ${isAutoFillActive ? '' : 'govfill-btn-primary'}" style="${isAutoFillActive ? 'background:#dc2626;color:#ffffff;border:none;' : ''}">
+            ${isAutoFillActive ? '⏹ Stop Auto-Fill' : '⚡ Auto-Fill Application Form'}
           </button>
 
           ${(cachedProfile?.photoUrl || cachedProfile?.signatureUrl) ? `
@@ -1189,6 +1214,10 @@
 
     document.getElementById('gw-btn-autofill').addEventListener('click', (e) => {
       e.stopPropagation();
+      if (isAutoFillActive) {
+        stopAutoFill();
+        return;
+      }
       if (!cachedProfile) {
         showToast('Please open the extension popup and choose a customer profile first!');
         return;
