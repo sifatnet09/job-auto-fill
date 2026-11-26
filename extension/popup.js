@@ -88,7 +88,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   lockApiKeyInput();
   customerIdInput.value = lastCustomerId;
   linkOpenDash.href = serverUrl;
-  chkFloating.checked = saved.showFloatingWidget !== false;
+  chkFloating.checked = false;
+
+  // Check if floating widget is currently enabled on THIS active tab only
+  const [initialTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (initialTab?.id) {
+    chrome.tabs.sendMessage(initialTab.id, { action: 'GET_WIDGET_STATE' }, (res) => {
+      if (!chrome.runtime.lastError && res) {
+        chkFloating.checked = Boolean(res.visible);
+      }
+    });
+  }
 
   // Toggle Config View
   btnToggleConfig.addEventListener('click', () => {
@@ -118,9 +128,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     linkOpenDash.href = 'http://localhost:5000';
   });
 
-  // Floating widget toggle
+  // Floating widget toggle — ONLY for the currently active tab/page
   chkFloating.addEventListener('change', async () => {
-    await chrome.storage.local.set({ showFloatingWidget: chkFloating.checked });
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return;
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'SET_WIDGET_STATE',
+      visible: chkFloating.checked,
+      expanded: false,
+      customer: currentLoadedCustomer?.data || null,
+      customerId: currentLoadedCustomer?.customerId || null
+    }, () => {
+      if (chrome.runtime.lastError) {
+        chkFloating.checked = false;
+        showBannerMsg('Refresh this page once to toggle the in-page widget.', 'info');
+      }
+    });
   });
 
   // Always auto-verify with saved / permanent API key
@@ -320,8 +343,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('btn-pin-panel')?.addEventListener('click', async () => {
-    await chrome.storage.local.set({ showFloatingWidget: true, widgetExpanded: true });
-    chkFloating.checked = true;
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.id) {
       chrome.tabs.sendMessage(tab.id, {
@@ -332,7 +353,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (chrome.runtime.lastError) {
           showBannerMsg('Refresh the job page once to show the persistent panel.', 'info');
         } else {
-          showBannerMsg('📌 Panel pinned on page — stays open until you click Close!', 'success');
+          chkFloating.checked = true;
+          showBannerMsg('📌 Panel enabled on THIS page only — hidden on all other pages!', 'success');
         }
       });
     }

@@ -15,15 +15,15 @@
   let lastFilledCount = 0;
   let didAutoFillThisPage = false;
 
-  // Initialize from Chrome storage
-  chrome.storage.local.get(['cachedCustomer', 'lastCustomerId', 'showFloatingWidget', 'widgetExpanded'], (res) => {
+  // Initialize from Chrome storage (ONLY show floating widget on tabs where user explicitly turned it ON)
+  chrome.storage.local.get(['cachedCustomer', 'lastCustomerId'], (res) => {
     if (res.cachedCustomer) {
       cachedProfile = res.cachedCustomer.data;
       cachedCustomerId = res.cachedCustomer.customerId || res.lastCustomerId;
     }
 
-    if (res.showFloatingWidget !== false) {
-      injectFloatingWidget(res.widgetExpanded === true);
+    if (sessionStorage.getItem('govfill_widget_enabled_tab') === '1') {
+      injectFloatingWidget(sessionStorage.getItem('govfill_widget_expanded_tab') === '1');
     }
 
     // Automatically attach Customer Photo & Signature on 2nd page if Page 1 was autofilled in this tab session
@@ -43,9 +43,33 @@
 
   // Listen for messages from extension popup
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'GET_WIDGET_STATE') {
+      sendResponse({
+        visible: Boolean(floatingWidgetEl) || sessionStorage.getItem('govfill_widget_enabled_tab') === '1'
+      });
+      return false;
+    }
+
+    if (request.action === 'SET_WIDGET_STATE') {
+      if (request.visible) {
+        if (request.customer) cachedProfile = request.customer;
+        if (request.customerId) cachedCustomerId = request.customerId;
+        sessionStorage.setItem('govfill_widget_enabled_tab', '1');
+        if (!floatingWidgetEl) injectFloatingWidget(Boolean(request.expanded));
+        else if (request.expanded) expandFloatingWidget();
+        updateFloatingWidgetInfo();
+      } else {
+        removeFloatingWidget();
+      }
+      sendResponse({ success: true, visible: Boolean(floatingWidgetEl) });
+      return false;
+    }
+
     if (request.action === 'OPEN_PERSISTENT_WIDGET') {
       if (request.customer) cachedProfile = request.customer;
       if (request.customerId) cachedCustomerId = request.customerId;
+      sessionStorage.setItem('govfill_widget_enabled_tab', '1');
+      sessionStorage.setItem('govfill_widget_expanded_tab', '1');
       if (!floatingWidgetEl) injectFloatingWidget(true);
       else expandFloatingWidget();
       updateFloatingWidgetInfo();
@@ -1120,7 +1144,8 @@
   function expandFloatingWidget() {
     if (!floatingWidgetEl) return;
     floatingWidgetEl.classList.remove('govfill-collapsed');
-    chrome.storage.local.set({ widgetExpanded: true });
+    sessionStorage.setItem('govfill_widget_enabled_tab', '1');
+    sessionStorage.setItem('govfill_widget_expanded_tab', '1');
 
     floatingWidgetEl.innerHTML = `
       <div class="govfill-card">
@@ -1157,7 +1182,7 @@
 
     const closeHandler = (e) => {
       e.stopPropagation();
-      collapseFloatingWidget();
+      removeFloatingWidget();
     };
     document.getElementById('govfill-close-btn').addEventListener('click', closeHandler);
     document.getElementById('gw-btn-close').addEventListener('click', closeHandler);
@@ -1178,11 +1203,13 @@
     });
   }
 
-  function collapseFloatingWidget() {
-    if (!floatingWidgetEl) return;
-    chrome.storage.local.set({ widgetExpanded: false });
-    floatingWidgetEl.className = 'govfill-collapsed';
-    floatingWidgetEl.innerHTML = getWidgetCollapsedMarkup();
+  function removeFloatingWidget() {
+    sessionStorage.removeItem('govfill_widget_enabled_tab');
+    sessionStorage.removeItem('govfill_widget_expanded_tab');
+    if (floatingWidgetEl) {
+      floatingWidgetEl.remove();
+      floatingWidgetEl = null;
+    }
   }
 
   function updateFloatingWidgetInfo() {
